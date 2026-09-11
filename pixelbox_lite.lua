@@ -130,51 +130,60 @@ local function base_n_rshift(n,base,shift)
     return math.floor(n/(base^shift))
 end
 
-local real_entries = 0
+local pattern        = {0,0,0,0,0,0}
+local first_position = {}
+
+local function register_pattern()
+    for i=6,1,-1 do
+        first_position[pattern[i]] = i-1
+    end
+
+    local pattern_identifier = generate_identifier(
+        first_position[pattern[1]],first_position[pattern[2]],
+        first_position[pattern[3]],first_position[pattern[4]],
+        first_position[pattern[5]],first_position[pattern[6]]
+    )
+
+    if not texel_character_lookup[pattern_identifier] then
+        local character,sub_state_1,sub_state_2 = calculate_texel(
+            pattern[1],pattern[2],
+            pattern[3],pattern[4],
+            pattern[5],pattern[6]
+        )
+
+        texel_foreground_lookup[pattern_identifier] = first_position[sub_state_1] + 1
+        texel_background_lookup[pattern_identifier] = first_position[sub_state_2] + 1
+
+        texel_character_lookup[pattern_identifier] = string.char(character)
+    end
+end
+
+-- The lookups only depend on which subpixels share a color, so one
+-- representative per equality pattern is enough. Subpixel 6 is state 0 and,
+-- walking towards subpixel 1, each subpixel either reuses a state already in
+-- use or introduces the next one. That yields every one of the 203 patterns
+-- exactly once, with the same representative a full 6^6 scan reaches first.
+local function enumerate_patterns(position,state_count)
+    if position == 0 then
+        register_pattern()
+        return
+    end
+
+    for state=0,state_count-1 do
+        pattern[position] = state
+        enumerate_patterns(position-1,state_count)
+    end
+
+    pattern[position] = state_count
+    enumerate_patterns(position-1,state_count+1)
+end
+
 local function generate_lookups()
     for i = 0, 15 do
         to_blit[2^i] = ("%x"):format(i)
     end
 
-    for encoded_pattern=0,6^6 do
-        local subtexel_1 = base_n_rshift(encoded_pattern,6,0) % 6
-        local subtexel_2 = base_n_rshift(encoded_pattern,6,1) % 6
-        local subtexel_3 = base_n_rshift(encoded_pattern,6,2) % 6
-        local subtexel_4 = base_n_rshift(encoded_pattern,6,3) % 6
-        local subtexel_5 = base_n_rshift(encoded_pattern,6,4) % 6
-        local subtexel_6 = base_n_rshift(encoded_pattern,6,5) % 6
-
-        local pattern_lookup = {}
-        pattern_lookup[subtexel_6] = 5
-        pattern_lookup[subtexel_5] = 4
-        pattern_lookup[subtexel_4] = 3
-        pattern_lookup[subtexel_3] = 2
-        pattern_lookup[subtexel_2] = 1
-        pattern_lookup[subtexel_1] = 0
-
-        local pattern_identifier = generate_identifier(
-            pattern_lookup[subtexel_1],pattern_lookup[subtexel_2],
-            pattern_lookup[subtexel_3],pattern_lookup[subtexel_4],
-            pattern_lookup[subtexel_5],pattern_lookup[subtexel_6]
-        )
-
-        if not texel_character_lookup[pattern_identifier] then
-            real_entries = real_entries + 1
-            local character,sub_state_1,sub_state_2 = calculate_texel(
-                subtexel_1,subtexel_2,
-                subtexel_3,subtexel_4,
-                subtexel_5,subtexel_6
-            )
-
-            local color_1_location = pattern_lookup[sub_state_1] + 1
-            local color_2_location = pattern_lookup[sub_state_2] + 1
-
-            texel_foreground_lookup[pattern_identifier] = color_1_location
-            texel_background_lookup[pattern_identifier] = color_2_location
-
-            texel_character_lookup[pattern_identifier] = string.char(character)
-        end
-    end
+    enumerate_patterns(5,1)
 end
 
 pixelbox.internal.generate_lookups = generate_lookups
