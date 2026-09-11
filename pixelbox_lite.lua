@@ -130,49 +130,65 @@ local function base_n_rshift(n,base,shift)
     return math.floor(n/(base^shift))
 end
 
-local real_entries = 0
+local pattern_lookup = {}
+local function store_texel_pattern(subtexel_1,subtexel_2,subtexel_3,subtexel_4,subtexel_5,subtexel_6)
+    pattern_lookup[subtexel_6] = 5
+    pattern_lookup[subtexel_5] = 4
+    pattern_lookup[subtexel_4] = 3
+    pattern_lookup[subtexel_3] = 2
+    pattern_lookup[subtexel_2] = 1
+    pattern_lookup[subtexel_1] = 0
+
+    local pattern_identifier = generate_identifier(
+        pattern_lookup[subtexel_1],pattern_lookup[subtexel_2],
+        pattern_lookup[subtexel_3],pattern_lookup[subtexel_4],
+        pattern_lookup[subtexel_5],pattern_lookup[subtexel_6]
+    )
+
+    if not texel_character_lookup[pattern_identifier] then
+        local character,sub_state_1,sub_state_2 = calculate_texel(
+            subtexel_1,subtexel_2,
+            subtexel_3,subtexel_4,
+            subtexel_5,subtexel_6
+        )
+
+        local color_1_location = pattern_lookup[sub_state_1] + 1
+        local color_2_location = pattern_lookup[sub_state_2] + 1
+
+        texel_foreground_lookup[pattern_identifier] = color_1_location
+        texel_background_lookup[pattern_identifier] = color_2_location
+
+        texel_character_lookup[pattern_identifier] = string.char(character)
+    end
+end
+
 local function generate_lookups()
     for i = 0, 15 do
         to_blit[2^i] = ("%x"):format(i)
     end
 
-    for encoded_pattern=0,6^6 do
-        local subtexel_1 = base_n_rshift(encoded_pattern,6,0) % 6
-        local subtexel_2 = base_n_rshift(encoded_pattern,6,1) % 6
-        local subtexel_3 = base_n_rshift(encoded_pattern,6,2) % 6
-        local subtexel_4 = base_n_rshift(encoded_pattern,6,3) % 6
-        local subtexel_5 = base_n_rshift(encoded_pattern,6,4) % 6
-        local subtexel_6 = base_n_rshift(encoded_pattern,6,5) % 6
-
-        local pattern_lookup = {}
-        pattern_lookup[subtexel_6] = 5
-        pattern_lookup[subtexel_5] = 4
-        pattern_lookup[subtexel_4] = 3
-        pattern_lookup[subtexel_3] = 2
-        pattern_lookup[subtexel_2] = 1
-        pattern_lookup[subtexel_1] = 0
-
-        local pattern_identifier = generate_identifier(
-            pattern_lookup[subtexel_1],pattern_lookup[subtexel_2],
-            pattern_lookup[subtexel_3],pattern_lookup[subtexel_4],
-            pattern_lookup[subtexel_5],pattern_lookup[subtexel_6]
-        )
-
-        if not texel_character_lookup[pattern_identifier] then
-            real_entries = real_entries + 1
-            local character,sub_state_1,sub_state_2 = calculate_texel(
-                subtexel_1,subtexel_2,
-                subtexel_3,subtexel_4,
-                subtexel_5,subtexel_6
-            )
-
-            local color_1_location = pattern_lookup[sub_state_1] + 1
-            local color_2_location = pattern_lookup[sub_state_2] + 1
-
-            texel_foreground_lookup[pattern_identifier] = color_1_location
-            texel_background_lookup[pattern_identifier] = color_2_location
-
-            texel_character_lookup[pattern_identifier] = string.char(character)
+    -- Only the way the six subtexels compare to each other decides the entry,
+    -- not which colors are involved, so subtexel 6 can stay state 0 and every
+    -- subtexel left of it either repeats a state already used to its right or
+    -- opens the next one. That walks each of the 203 reachable entries once
+    -- instead of relabeling all 6^6 state combinations into them.
+    for subtexel_5=0,1 do
+        local highest_5 = subtexel_5
+        for subtexel_4=0,highest_5+1 do
+            local highest_4 = subtexel_4 > highest_5 and subtexel_4 or highest_5
+            for subtexel_3=0,highest_4+1 do
+                local highest_3 = subtexel_3 > highest_4 and subtexel_3 or highest_4
+                for subtexel_2=0,highest_3+1 do
+                    local highest_2 = subtexel_2 > highest_3 and subtexel_2 or highest_3
+                    for subtexel_1=0,highest_2+1 do
+                        store_texel_pattern(
+                            subtexel_1,subtexel_2,
+                            subtexel_3,subtexel_4,
+                            subtexel_5,0
+                        )
+                    end
+                end
+            end
         end
     end
 end

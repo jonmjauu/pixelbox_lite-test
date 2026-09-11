@@ -18,13 +18,15 @@ W=128 local Y=S[6]if S[1]~=Y then W=W+1 end if S[2]~=Y then W=W+2 end if
 S[3]~=Y then W=W+4 end if S[4]~=Y then W=W+8 end if S[5]~=Y then W=W+16 end
 local P,V if#T>1 then P=T[Y+1].value V=T[2-Y].value else P=T[1].value
 V=T[1].value end return W,P,V end local function B(G,K,Q)return
-math.floor(G/(K^Q))end local J=0 local function X()for Z=0,15 do
-h[2^Z]=("%x"):format(Z)end for et=0,6^6 do local tt=B(et,6,0)%6 local
-at=B(et,6,1)%6 local ot=B(et,6,2)%6 local it=B(et,6,3)%6 local nt=B(et,6,4)%6
-local st=B(et,6,5)%6 local ht={}ht[st]=5 ht[nt]=4 ht[it]=3 ht[ot]=2 ht[at]=1
-ht[tt]=0 local rt=r(ht[tt],ht[at],ht[ot],ht[it],ht[nt],ht[st])if not i[rt]then
-J=J+1 local dt,lt,ut=w(tt,at,ot,it,nt,st)local ct=ht[lt]+1 local mt=ht[ut]+1
-n[rt]=ct s[rt]=mt i[rt]=string.char(dt)end end end
+math.floor(G/(K^Q))end local ht={}local function J(tt,at,ot,it,nt,st)ht[st]=5 ht[nt]=4 ht[it]=3
+ht[ot]=2 ht[at]=1 ht[tt]=0 local
+rt=r(ht[tt],ht[at],ht[ot],ht[it],ht[nt],ht[st])if not i[rt]then local
+dt,lt,ut=w(tt,at,ot,it,nt,st)local ct=ht[lt]+1 local mt=ht[ut]+1 n[rt]=ct
+s[rt]=mt i[rt]=string.char(dt)end end local function X()for Z=0,15 do
+h[2^Z]=("%x"):format(Z)end for nt=0,1 do local q5=nt for it=0,q5+1 do local
+q4=it>q5 and it or q5 for ot=0,q4+1 do local q3=ot>q4 and ot or q4 for
+at=0,q3+1 do local q2=at>q3 and at or q3 for tt=0,q2+1 do
+J(tt,at,ot,it,nt,0)end end end end end end
 e.internal.generate_lookups=X e.internal.calculate_texel=w
 e.internal.make_pattern_id=r e.internal.base_n_rshift=B function
 e.make_canvas_scanline(ft)return
