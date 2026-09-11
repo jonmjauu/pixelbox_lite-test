@@ -130,49 +130,53 @@ local function base_n_rshift(n,base,shift)
     return math.floor(n/(base^shift))
 end
 
-local real_entries = 0
 local function generate_lookups()
     for i = 0, 15 do
         to_blit[2^i] = ("%x"):format(i)
     end
 
-    for encoded_pattern=0,6^6 do
-        local subtexel_1 = base_n_rshift(encoded_pattern,6,0) % 6
-        local subtexel_2 = base_n_rshift(encoded_pattern,6,1) % 6
-        local subtexel_3 = base_n_rshift(encoded_pattern,6,2) % 6
-        local subtexel_4 = base_n_rshift(encoded_pattern,6,3) % 6
-        local subtexel_5 = base_n_rshift(encoded_pattern,6,4) % 6
-        local subtexel_6 = base_n_rshift(encoded_pattern,6,5) % 6
+    local pattern_lookup = {}
 
-        local pattern_lookup = {}
-        pattern_lookup[subtexel_6] = 5
-        pattern_lookup[subtexel_5] = 4
-        pattern_lookup[subtexel_4] = 3
-        pattern_lookup[subtexel_3] = 2
-        pattern_lookup[subtexel_2] = 1
-        pattern_lookup[subtexel_1] = 0
+    -- Enumerate each canonical state pattern once, starting at subtexel 6.
+    -- Each earlier subtexel reuses a known state or introduces the next one.
+    for subtexel_5=0,1 do
+        local highest_state_5 = subtexel_5
+        for subtexel_4=0,highest_state_5+1 do
+            local highest_state_4 =
+                subtexel_4 > highest_state_5 and subtexel_4 or highest_state_5
+            for subtexel_3=0,highest_state_4+1 do
+                local highest_state_3 =
+                    subtexel_3 > highest_state_4 and subtexel_3 or highest_state_4
+                for subtexel_2=0,highest_state_3+1 do
+                    local highest_state_2 =
+                        subtexel_2 > highest_state_3 and subtexel_2 or highest_state_3
+                    for subtexel_1=0,highest_state_2+1 do
+                        pattern_lookup[0]            = 5
+                        pattern_lookup[subtexel_5]   = 4
+                        pattern_lookup[subtexel_4]   = 3
+                        pattern_lookup[subtexel_3]   = 2
+                        pattern_lookup[subtexel_2]   = 1
+                        pattern_lookup[subtexel_1]   = 0
 
-        local pattern_identifier = generate_identifier(
-            pattern_lookup[subtexel_1],pattern_lookup[subtexel_2],
-            pattern_lookup[subtexel_3],pattern_lookup[subtexel_4],
-            pattern_lookup[subtexel_5],pattern_lookup[subtexel_6]
-        )
+                        local pattern_identifier = generate_identifier(
+                            pattern_lookup[subtexel_1],pattern_lookup[subtexel_2],
+                            pattern_lookup[subtexel_3],pattern_lookup[subtexel_4],
+                            pattern_lookup[subtexel_5],pattern_lookup[0]
+                        )
 
-        if not texel_character_lookup[pattern_identifier] then
-            real_entries = real_entries + 1
-            local character,sub_state_1,sub_state_2 = calculate_texel(
-                subtexel_1,subtexel_2,
-                subtexel_3,subtexel_4,
-                subtexel_5,subtexel_6
-            )
+                        if not texel_character_lookup[pattern_identifier] then
+                            local character,sub_state_1,sub_state_2 = calculate_texel(
+                                subtexel_1,subtexel_2,subtexel_3,
+                                subtexel_4,subtexel_5,0
+                            )
 
-            local color_1_location = pattern_lookup[sub_state_1] + 1
-            local color_2_location = pattern_lookup[sub_state_2] + 1
-
-            texel_foreground_lookup[pattern_identifier] = color_1_location
-            texel_background_lookup[pattern_identifier] = color_2_location
-
-            texel_character_lookup[pattern_identifier] = string.char(character)
+                            texel_foreground_lookup[pattern_identifier] = pattern_lookup[sub_state_1] + 1
+                            texel_background_lookup[pattern_identifier] = pattern_lookup[sub_state_2] + 1
+                            texel_character_lookup [pattern_identifier] = string.char(character)
+                        end
+                    end
+                end
+            end
         end
     end
 end
